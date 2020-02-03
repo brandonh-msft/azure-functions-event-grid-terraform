@@ -1,0 +1,43 @@
+pr: none
+trigger:
+  branches:
+    include:
+    - develop
+  paths:
+    include:
+    - infrastructure/
+    - src/
+
+variables:
+- name: artifactName
+  value: FunctionApp
+- name: PipelineVariableDir
+  value: $(Pipeline.Workspace)/variables
+- name: serviceConnectionName
+  value: my-azure
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: BuildFunctionsArtifact
+  displayName: Build Functions Artifact
+  variables:
+    buildConfiguration: 'Release'
+    workingDirectory:   '$(Build.SourcesDirectory)/src/$(artifactName)'
+    functionAppProjectName:  '$(artifactName).csproj'
+    packDirectory: '$(Build.ArtifactStagingDirectory)'
+    downloadDirectory: '$(Build.SourcesDirectory)/downloadDirectory'
+
+  jobs:
+    - job: BuildFunctionAppArtifact
+      steps:
+      - template: templates/build-test-report-template.yml
+      - publish: $(packDirectory)
+        artifact: $(artifactName)
+
+- template: templates/deploy-to-env-template.yml
+  parameters:
+    environment: sb
+    environmentDisplayName: Sandbox
+    packDirectory: '$(Build.ArtifactStagingDirectory)'

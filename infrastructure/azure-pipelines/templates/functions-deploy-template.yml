@@ -1,0 +1,19 @@
+steps:
+- bash: echo "Deploy Started"
+  displayName: Start Functions Deploy
+
+- bash: 'ls -al $(Pipeline.Workspace)/${{parameters.artifactName}}'    
+  displayName: list out Pipeline.Workspace/artifactName
+
+- task: AzureKeyVault@1
+  inputs:
+    azureSubscription: '$(serviceConnectionName)'
+    keyVaultName: '${{parameters.keyVaultName}}'
+    secretsFilter: '*'
+
+- task: AzureFunctionApp@1 # Add this at the end of your file
+  inputs:
+    azureSubscription: '$(serviceConnectionName)'
+    appType: functionApp
+    appName: '${{parameters.functionAppName}}'
+    package: '$(Pipeline.Workspace)/${{parameters.artifactName}}'

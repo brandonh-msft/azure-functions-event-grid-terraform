@@ -1,0 +1,69 @@
+stages:
+- template: terraform-stages-template.yml
+  parameters:
+    environment: ${{ parameters.environment }}
+    environmentDisplayName: ${{ parameters.environmentDisplayName }}
+    stageSuffix: top
+    stageSuffixDisplayName: top
+    TerraformArguments: >-
+      -var eventGridFunctionName='EventGrid'
+      -target module.functions
+
+- stage: Functions${{ parameters.environmentDisplayName }}Release
+  displayName: Functions ${{ parameters.environmentDisplayName }} Deployment
+  dependsOn:
+    - BuildFunctionsArtifact
+    - Terraform_Apply_${{ parameters.environment }}_top
+  jobs:
+    - deployment: Deploy${{ parameters.environmentDisplayName }}Functions
+      environment: ${{ parameters.environmentDisplayName }}
+      displayName: Deploy ${{ parameters.environmentDisplayName }} Functions
+      pool:
+        vmImage: ubuntu-latest
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+            - bash: ls -al
+              displayName: List Everything under Pipeline.Workspace
+              workingDirectory: $(Pipeline.Workspace)
+
+            - bash: ls -al
+              displayName: List Out Variables Test Dir
+              workingDirectory: $(Pipeline.Workspace)/variables_${{ parameters.environment }}_top
+
+            - bash: |
+                set -eu
+                cat ./variables.json
+                cat ./variables.json | jq -r '
+                  . as $in
+                  | keys[] 
+                  | ["##vso[task.setvariable variable=" + . + "]" + ($in[.] | tostring)]
+                  | @tsv'
+              name: TerraformOutputs
+              displayName: Export variables outputs
+              workingDirectory: $(Pipeline.Workspace)/variables_${{ parameters.environment }}_top
+
+            - bash: |
+                echo '$FUNCTION_APP_NAME: ' $FUNCTION_APP_NAME
+                echo '$DELIVERY_TOPIC_ID: '$DELIVERY_TOPIC_ID
+              displayName: echoing out environments
+              
+            - template: functions-deploy-template.yml
+              parameters:
+                artifactName: $(artifactName)
+                packDirectory: $(packDirectory)
+                environmentDisplayName: ${{ parameters.environmentDisplayName }}
+                environment: ${{ parameters.environment }}
+                functionAppName: $(FUNCTION_APP_NAME)
+                keyVaultName: $(SHARED_KV_NAME)
+                serviceConnection: $(serviceConnectionName)
+
+- template: terraform-stages-template.yml
+  parameters:
+    environment: ${{ parameters.environment }}
+    environmentDisplayName: ${{ parameters.environmentDisplayName }}
+    stageSuffix: bottom
+    stageSuffixDisplayName: bottom
+    TerraformArguments: >-
+      -var eventGridFunctionName='EventGrid'

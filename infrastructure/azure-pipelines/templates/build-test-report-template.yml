@@ -1,0 +1,18 @@
+# variable: (not possible right now)
+# - 
+
+steps:
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk 3.1'
+  inputs:
+    packageType: sdk
+    version: 3.1.x
+
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build function app'
+  inputs:
+    command: build
+    projects: '**/*$(functionAppProjectName)'
+    arguments: '--configuration $(BuildConfiguration) --output $(packDirectory)'
+    workingDirectory: $(workingDirectory)
+    modifyOutputPath: true
