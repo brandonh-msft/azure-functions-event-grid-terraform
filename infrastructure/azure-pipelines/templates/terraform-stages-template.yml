@@ -115,33 +115,3 @@ stages:
               mkdir -p $(PipelineVariableDir)
               ls -al $(PipelineVariableDir)
             name: MakeDirectory
-
-          # TODO: need to figure out how to filter out the sensitive=true data. Currently no sensitive data is passed to terraform output. and all sensitive data is supposed to be passed to key vault
-          - bash: |
-              set -eu
-              terraform output -json | echo "$(jq 'map_values(.value)')" > $(PipelineVariableDir)/variables.json
-            name: ExportOutputValuesJsonToPipelineArtifact
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-
-          - bash: |
-              set -eu
-              terraform output -json | jq -r '
-                . as $in
-                | keys[] 
-                | ["echo \"" + ($in[.].value | tostring) + "\" > " + . + ";"] 
-                | @tsv' > $(PipelineVariableDir)/createVarFiles.sh
-            name: ExportOutputValuesCreateVarFilesToPipelineArtifact
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-          
-          - bash: |
-              set -eu
-              terraform output -json | jq -r '
-                . as $in
-                | keys[] 
-                | ["export " + . + "=\"" + ($in[.].value | tostring) + "\";"] 
-                | @tsv' > $(PipelineVariableDir)/exportVars.sh
-            name: ExportOutputValuesExportVarsToPipelineArtifact
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-          
-          - publish: $(PipelineVariableDir)
-            artifact: variables_${{ parameters.environment }}_${{ parameters.stageSuffix }}
