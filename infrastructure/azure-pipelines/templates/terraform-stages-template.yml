@@ -37,7 +37,7 @@ stages:
         terraform plan -input=false -out=tfplan -var environment=${{ parameters.environment }} ${{ parameters.TerraformArguments }}
       displayName: Terraform plan
       # Avoid concurrent Terraform runs on PRs, which would result in failures due to exclusive lock on remote state file.
-      condition: and(succeeded(), or(in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}), variables['RUN_FLAG_TERRAFORM']))
+      condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
       workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure/terraform
       env:
         ${{ parameters.TerraformEnvVariables }}
@@ -106,7 +106,7 @@ stages:
                 fi
               fi
             displayName: Terraform plan
-            condition: and(succeeded(), or(in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}), variables['RUN_FLAG_TERRAFORM']))
+            condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
             workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
             env:
               ${{ parameters.TerraformEnvVariables }}
@@ -115,7 +115,7 @@ stages:
               set -eux  # ensure pipeline stops if terraform fails or diff reports a difference
               terraform show -no-color tfplan > newplan${{ parameters.environment }}${{ parameters.stageSuffix }}.txt
               diff -u plan${{ parameters.environment }}${{ parameters.stageSuffix }}.txt newplan${{ parameters.environment }}${{ parameters.stageSuffix }}.txt
-            condition: and(succeeded(), or(in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}), variables['RUN_FLAG_TERRAFORM']))
+            condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
             workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
             displayName: Ensure plan is unchanged
 
@@ -123,7 +123,7 @@ stages:
               set -eu
               export ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET)
               terraform apply -input=false -auto-approve tfplan
-            condition: and(succeeded(), or(in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}), variables['RUN_FLAG_TERRAFORM']))
+            condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
             displayName: Terraform apply
             workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
           

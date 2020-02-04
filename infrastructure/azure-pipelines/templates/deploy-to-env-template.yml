@@ -6,7 +6,6 @@ stages:
     stageSuffix: top
     stageSuffixDisplayName: top
     TerraformArguments: >-
-      -var eventGridFunctionName='EventGrid'
       -target module.functions
 
 - stage: Functions${{ parameters.environmentDisplayName }}Release
