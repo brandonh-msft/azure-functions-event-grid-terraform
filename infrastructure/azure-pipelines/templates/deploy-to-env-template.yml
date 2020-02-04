@@ -1,23 +1,20 @@
 stages:
 - template: terraform-stages-template.yml
   parameters:
-    environment: ${{ parameters.environment }}
-    environmentDisplayName: ${{ parameters.environmentDisplayName }}
     stageSuffix: top
     stageSuffixDisplayName: top
     TerraformArguments: >-
       -prefix "${{ variables.PREFIX }}""
       -target module.functions
 
-- stage: Functions${{ parameters.environmentDisplayName }}Release
-  displayName: Functions ${{ parameters.environmentDisplayName }} Deployment
+- stage: FunctionsRelease
+  displayName: Functions Deployment
   dependsOn:
     - BuildFunctionsArtifact
-    - Terraform_Apply_${{ parameters.environment }}_top
+    - Terraform_Apply_top
   jobs:
-    - deployment: Deploy${{ parameters.environmentDisplayName }}Functions
-      environment: ${{ parameters.environmentDisplayName }}
-      displayName: Deploy ${{ parameters.environmentDisplayName }} Functions
+    - deployment: DeployFunctions
+      displayName: Deploy Functions
       pool:
         vmImage: ubuntu-latest
       strategy:
@@ -30,7 +27,7 @@ stages:
 
             - bash: ls -al
               displayName: List Out Variables Test Dir
-              workingDirectory: $(Pipeline.Workspace)/variables_${{ parameters.environment }}_top
+              workingDirectory: $(Pipeline.Workspace)/variables_top
 
             - bash: |
                 set -eu
@@ -42,7 +39,7 @@ stages:
                   | @tsv'
               name: TerraformOutputs
               displayName: Export variables outputs
-              workingDirectory: $(Pipeline.Workspace)/variables_${{ parameters.environment }}_top
+              workingDirectory: $(Pipeline.Workspace)/variables_top
 
             - bash: |
                 echo '$FUNCTION_APP_NAME: ' $FUNCTION_APP_NAME
@@ -53,16 +50,12 @@ stages:
               parameters:
                 artifactName: $(artifactName)
                 packDirectory: $(packDirectory)
-                environmentDisplayName: ${{ parameters.environmentDisplayName }}
-                environment: ${{ parameters.environment }}
                 functionAppName: $(FUNCTION_APP_NAME)
                 keyVaultName: $(SHARED_KV_NAME)
                 serviceConnection: $(serviceConnectionName)
 
 - template: terraform-stages-template.yml
   parameters:
-    environment: ${{ parameters.environment }}
-    environmentDisplayName: ${{ parameters.environmentDisplayName }}
     stageSuffix: bottom
     stageSuffixDisplayName: bottom
     TerraformArguments: >-

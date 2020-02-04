@@ -32,7 +32,7 @@ steps:
         az storage account create -n "$AZURE_STORAGE_ACCOUNT" -o none
         az storage container create -n "$container" -o none
       fi
-      blob='${{ parameters.environment }}.tfstate'
+      blob='sample.tfstate'
       if [[ $(az storage blob exists -c "$container" -n "$blob" --query exists) = "true" ]]; then
         if [[ $(az storage blob show -c "$container" -n "$blob" --query "properties.lease.status=='locked'") = "true" ]]; then
           echo "State is leased"
@@ -65,7 +65,7 @@ steps:
     backendAzureRmResourceGroupName: ${{ parameters.TerraformBackendResourceGroup }}
     backendAzureRmStorageAccountName: ${{ parameters.TerraformBackendStorageAccount }}
     backendAzureRmContainerName: ${{ parameters.TerraformBackendStorageContainer }}
-    backendAzureRmKey: ${{ parameters.environment }}.tfstate
+    backendAzureRmKey: sample.tfstate
 
 - task: AzureCLI@1
   displayName: Get ARM credentials for Terraform

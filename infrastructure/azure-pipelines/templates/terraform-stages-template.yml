@@ -1,6 +1,4 @@
 parameters:
-  environment: stage
-  environmentDisplayName: Staging
   TerraformArguments: {}
   TerraformEnvVariables: {}
   TerraformPlanBranches: 
@@ -8,8 +6,8 @@ parameters:
   - '''refs/heads/develop'''
 
 stages:
-- stage: Terraform_Plan_${{ parameters.environment }}_${{ parameters.stageSuffix }}
-  displayName: Terraform Plan ${{ parameters.environmentDisplayName }} ${{ parameters.stageSuffixDisplayName }}
+- stage: Terraform_Plan_${{ parameters.stageSuffix }}
+  displayName: Terraform Plan ${{ parameters.stageSuffixDisplayName }}
   jobs:
   - job: Terraform_Plan
     displayName: Terraform Plan
@@ -24,7 +22,6 @@ stages:
     - template: terraform-init-template.yml
       parameters:
         TerraformDirectory: $(System.DefaultWorkingDirectory)/infrastructure/terraform
-        environment: ${{ parameters.environment }}
         TerraformPlanBranches: ${{ parameters.TerraformPlanBranches }}
 
     # Using AzureCLI instead of Terraform extension because of following issues:
@@ -34,7 +31,7 @@ stages:
     - bash: |
         set -eu
         export ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET)
-        terraform plan -input=false -out=tfplan -var environment=${{ parameters.environment }} ${{ parameters.TerraformArguments }}
+        terraform plan -input=false -out=tfplan ${{ parameters.TerraformArguments }}
       displayName: Terraform plan
       # Avoid concurrent Terraform runs on PRs, which would result in failures due to exclusive lock on remote state file.
       condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
@@ -44,7 +41,7 @@ stages:
 
     - bash: |
         # Save a human-friendly version of the plan with passwords hidden
-        terraform show -no-color tfplan > plan${{ parameters.environment }}${{ parameters.stageSuffix }}.txt
+        terraform show -no-color tfplan > plan${{ parameters.stageSuffix }}.txt
         # Remove terraform plan from published artifacts, as it contains clear-text secrets
         rm tfplan
         # Resource providers can be > 100MB large, we don't want them in the published artifacts.
@@ -56,13 +53,12 @@ stages:
       displayName: Publish Pipeline Artifact
       inputs:
         targetPath: $(System.DefaultWorkingDirectory)/infrastructure/terraform
-        artifact: terraform_resources_${{ parameters.environment }}_${{ parameters.stageSuffix }}
+        artifact: terraform_resources_${{ parameters.stageSuffix }}
 
-- stage: Terraform_Apply_${{ parameters.environment }}_${{ parameters.stageSuffix }}
-  displayName: Apply ${{ parameters.environmentDisplayName }} ${{ parameters.stageSuffixDisplayName }}
+- stage: Terraform_Apply_${{ parameters.stageSuffix }}
+  displayName: Apply ${{ parameters.stageSuffixDisplayName }}
   jobs:
   - deployment: Apply
-    environment: ${{ parameters.environmentDisplayName }}
     displayName: Terraform Apply
     pool:
       vmImage: ubuntu-latest
@@ -73,13 +69,12 @@ stages:
           - task: DownloadPipelineArtifact@2
             displayName: Download TF Resources
             inputs:
-              artifactName: terraform_resources_${{ parameters.environment }}_${{ parameters.stageSuffix }}
+              artifactName: terraform_resources_${{ parameters.stageSuffix }}
               targetPath: $(System.DefaultWorkingDirectory)/terraform_resources
 
           - template: terraform-init-template.yml
             parameters:
               TerraformDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-              environment: ${{ parameters.environment }}
               provisionStorage: true
 
           # As the Terraform extension plan task doesn't support -detailed-exitcode
