@@ -88,40 +88,6 @@ stages:
           - bash: |
               set -eu
               export ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET)
-              # terraform plan -detailed-exitcode exit codes:
-              # 0 - Succeeded, diff is empty (no changes)
-              # 1 - Errored
-              # 2 - Succeeded, there is a diff
-              # >2 - unexpected, crash or bug
-              if terraform plan -detailed-exitcode -input=false -out=tfplan -var environment=${{ parameters.environment }} ${{ parameters.TerraformArguments }}; then
-                echo "Terraform succeeded with no changes"
-                # NB terraform apply should still be run, e.g. if new outputs have been created
-              else
-                terraform_exitcode=$?
-                if [ $terraform_exitcode -eq 2 ]; then
-                  echo "Terraform succeeded with updates"
-                else
-                  echo "ERROR: terraform exited with code $terraform_exitcode"
-                  exit 1
-                fi
-              fi
-            displayName: Terraform plan
-            condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-            env:
-              ${{ parameters.TerraformEnvVariables }}
-
-          - bash: |
-              set -eux  # ensure pipeline stops if terraform fails or diff reports a difference
-              terraform show -no-color tfplan > newplan${{ parameters.environment }}${{ parameters.stageSuffix }}.txt
-              diff -u plan${{ parameters.environment }}${{ parameters.stageSuffix }}.txt newplan${{ parameters.environment }}${{ parameters.stageSuffix }}.txt
-            condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-            displayName: Ensure plan is unchanged
-
-          - bash: |
-              set -eu
-              export ARM_CLIENT_SECRET=$(ARM_CLIENT_SECRET)
               terraform apply -input=false -auto-approve tfplan
             condition: and(succeeded(), in(variables['Build.SourceBranch'], ${{join(',', parameters.TerraformPlanBranches)}}))
             displayName: Terraform apply
