@@ -51,6 +51,28 @@ module "functions" {
   sample_topic_key                         = azurerm_eventgrid_topic.sample_topic.primary_access_key
 }
 
+resource "azurerm_key_vault" "vault" {
+  name                = "${var.prefix}-vault"
+  resource_group_name = azurerm_resource_group.sample.name
+  location            = var.location
+  tenant_id           = module.functions.tenant_id
+
+  sku_name = "standard"
+
+  access_policy {
+    object_id = module.functions.principal_id
+    tenant_id = module.functions.tenant_id
+
+    secret_permissions = [
+      "get",
+    ]
+  }
+
+  tags = {
+    sample = "azure-functions-event-grid-terraform"
+  }
+}
+
 module "functionKeys" {
   source              = "./functionKeys"
   function_app_name   = module.functions.function_app_name

@@ -76,7 +76,10 @@ resource "azurerm_function_app" "fxn" {
     # these are added as placeholder so updates on Azure side (from deploys) are ignored (by below lifecycle attribute)
     WEBSITE_RUN_FROM_PACKAGE = "1"
   }
-
+  identity {
+    type = "SystemAssigned"
+  }
+  
   # We ignore these because they're set/changed by Function deployment
   lifecycle {
     ignore_changes = [
