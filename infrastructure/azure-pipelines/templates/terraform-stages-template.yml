@@ -80,7 +80,7 @@ stages:
             parameters:
               TerraformDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
               environment: ${{ parameters.environment }}
-              provisionStorage: false
+              provisionStorage: true
 
           # As the Terraform extension plan task doesn't support -detailed-exitcode
           # (to check if any changes are present), we define an equivalent AzureCLI
@@ -98,20 +98,3 @@ stages:
               terraform output -json
             name: EchoOutTerraformOutput
             workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-
-          - bash: |
-              set -eu
-              terraform output -json | jq -r '
-                . as $in
-                | keys[] 
-                | ["##vso[task.setvariable variable=" + . + ";isOutput=true;isSecret=" + ($in[.].sensitive | tostring) + "]" + ($in[.].value | tostring)]
-                | @tsv'
-            name: TerraformOutputs
-            displayName: Export terraform outputs
-            workingDirectory: $(System.DefaultWorkingDirectory)/terraform_resources
-
-          - bash: |
-              set -eu
-              mkdir -p $(PipelineVariableDir)
-              ls -al $(PipelineVariableDir)
-            name: MakeDirectory

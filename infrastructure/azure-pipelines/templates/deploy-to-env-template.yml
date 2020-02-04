@@ -6,7 +6,7 @@ stages:
     stageSuffix: top
     stageSuffixDisplayName: top
     TerraformArguments: >-
-      -prefix $(variables['PREFIX'])
+      -prefix "${{ variables.PREFIX }}""
       -target module.functions
 
 - stage: Functions${{ parameters.environmentDisplayName }}Release
@@ -66,4 +66,4 @@ stages:
     stageSuffix: bottom
     stageSuffixDisplayName: bottom
     TerraformArguments: >-
-      -prefix $(variables['PREFIX'])
+      -prefix "${{ variables.PREFIX }}""
